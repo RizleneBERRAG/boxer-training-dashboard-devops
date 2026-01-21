@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Boxer Training Dashboard</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
+    .card { max-width: 900px; margin: 0 auto; border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
+    h1 { margin: 0 0 8px; }
+    .muted { color: #666; margin: 0 0 16px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    input, select, button { padding: 10px; border-radius: 10px; border: 1px solid #ccc; }
+    button { cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+    .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; border: 1px solid #ddd; }
+    .err { color: #b00020; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🥊 Boxer Training Dashboard</h1>
+    <p class="muted">Frontend statique servi par Nginx. API via reverse proxy : <code>/api</code></p>
+
+    <div class="row">
+      <input id="date" type="date" />
+      <input id="duration" type="number" min="1" placeholder="Durée (min)" value="60" />
+      <select id="intensity">
+        <option value="low">low</option>
+        <option value="medium" selected>medium</option>
+        <option value="high">high</option>
+      </select>
+      <button id="btnAdd">Ajouter</button>
+      <button id="btnRefresh">Rafraîchir</button>
+    </div>
+
+    <div id="status" class="muted"></div>
+    <div id="error" class="err"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date</th>
+          <th>Durée</th>
+          <th>Intensité</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function toDateInputValue(d = new Date()) {
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+
+    async function refresh() {
+      $("error").textContent = "";
+      $("status").textContent = "Chargement...";
+      const res = await fetch("/api/sessions");
+      if (!res.ok) {
+        $("status").textContent = "";
+        $("error").textContent = `Erreur API: ${res.status} ${res.statusText}`;
+        return;
+      }
+      const rows = await res.json();
+      $("status").textContent = `OK — ${rows.length} séance(s)`;
+      const tbody = $("tbody");
+      tbody.innerHTML = "";
+      for (const r of rows) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.id}</td>
+          <td>${new Date(r.date).toLocaleDateString("fr-FR")}</td>
+          <td><span class="pill">${r.duration_min} min</span></td>
+          <td><span class="pill">${r.intensity}</span></td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function addSession() {
+      $("error").textContent = "";
+      const payload = {
+        date: $("date").value || toDateInputValue(),
+        duration_min: Number($("duration").value || 60),
+        intensity: $("intensity").value || "medium",
+      };
+
+      $("status").textContent = "Envoi...";
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        $("status").textContent = "";
+        $("error").textContent = `Erreur POST: ${res.status} — ${txt}`;
+        return;
+      }
+
+      $("status").textContent = "Séance ajoutée ✅";
+      await refresh();
+    }
+
+    $("date").value = toDateInputValue();
+    $("btnRefresh").addEventListener("click", refresh);
+    $("btnAdd").addEventListener("click", addSession);
+
+    refresh();
+  </script>
+</body>
+</html>

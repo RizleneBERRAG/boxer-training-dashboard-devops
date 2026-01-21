@@ -12,9 +12,22 @@ services:
     container_name: boxer-backend
     ports:
       - "5000:5000"
+    environment:
+      DB_HOST: db
+      DB_NAME: boxing
+      DB_USER: boxer
+      DB_PASSWORD: boxerpass
 
   db:
     image: mysql:8
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: boxing
+      MYSQL_USER: boxer
+      MYSQL_PASSWORD: boxerpass
+    
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:

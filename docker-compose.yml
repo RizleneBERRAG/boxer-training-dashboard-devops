@@ -10,7 +10,10 @@ services:
     image: nginx:alpine
 
   backend:
-    image: python:3.11-slim
+    build: ./backend
+    container_name: boxer-backend
+    ports:
+      - "5000:5000"
 
   db:
     image: mysql:8

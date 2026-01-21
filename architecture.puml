@@ -1,0 +1,16 @@
+@startuml
+node "User Browser" {
+  component "Frontend\n(Nginx)"
+}
+
+node "Docker Network" {
+  component "Reverse Proxy\n(Nginx)"
+  component "Backend API\n(Flask)"
+  database "MySQL"
+}
+
+"User Browser" --> "Frontend\n(Nginx)"
+"Frontend\n(Nginx)" --> "Reverse Proxy\n(Nginx)" : /api
+"Reverse Proxy\n(Nginx)" --> "Backend API\n(Flask)"
+"Backend API\n(Flask)" --> "MySQL"
+@enduml

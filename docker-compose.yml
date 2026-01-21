@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+
+  frontend:
+    image: nginx:alpine
+
+  backend:
+    image: python:3.11-slim
+
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: boxing

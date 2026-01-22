@@ -1,0 +1,16 @@
+:80
+
+# API Flask
+handle_path /api/* {
+  reverse_proxy backend:5000
+}
+
+# Portainer (admin infra)
+handle_path /admin/* {
+  reverse_proxy portainer:9000
+}
+
+# Frontend (HTML nginx interne)
+handle {
+  reverse_proxy frontend:80
+}

@@ -1,16 +1,17 @@
-:80
+:80 {
 
-# API Flask
-handle_path /api/* {
-  reverse_proxy backend:5000
-}
+  # API: on garde /api/... tel quel
+  handle /api/* {
+    reverse_proxy backend:5000
+  }
 
-# Portainer (admin infra)
-handle_path /admin/* {
-  reverse_proxy portainer:9000
-}
+  # Adminer: ici on strip /admin (Adminer aime être à la racine)
+  handle_path /admin/* {
+    reverse_proxy adminer:8080
+  }
 
-# Frontend (HTML nginx interne)
-handle {
-  reverse_proxy frontend:80
+  # Front: tout le reste
+  handle {
+    reverse_proxy frontend:80
+  }
 }

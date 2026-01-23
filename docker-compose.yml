@@ -1,95 +1,78 @@
 services:
-  # Reverse proxy UNIQUE point d'entrée
   caddy:
     image: caddy:2-alpine
     container_name: boxer-caddy
     ports:
-      - "8081:80"     # si tu veux garder localhost:8081
-      # - "80:80"     # si tu veux strictement port 80 sur Windows (désactive IIS si besoin)
+      # Pour le DEV local: http://localhost:8081
+      - "8081:80"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
       - frontend
       - backend
-      - portainer
+      - adminer
+    restart: unless-stopped
     networks:
       - web
-    restart: unless-stopped
+      - internal
 
-  # Tunnel Cloudflare (option A: quick tunnel / trycloudflare)
-  tunnel:
-    image: cloudflare/cloudflared:latest
-    container_name: boxer-tunnel
-    command: tunnel --no-autoupdate --url http://caddy:80
-    depends_on:
-      - caddy
-    networks:
-      - web
-    restart: unless-stopped
-
-  # Front statique
   frontend:
     build: ./frontend
     container_name: boxer-frontend
-    networks:
-      - web
     restart: unless-stopped
+    networks:
+      - internal
 
-  # Backend Flask
   backend:
     build: ./backend
     container_name: boxer-backend
+
     environment:
       DB_HOST: db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - web
-      - db
     restart: unless-stopped
+    networks:
+      - internal
 
-  # DB MySQL (PAS DE PORT EXPOSE)
   db:
     image: mysql:8
     container_name: boxer-db
+
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+
     volumes:
       - db_data:/var/lib/mysql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - db
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_ROOT_PASSWORD}"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
       timeout: 3s
       retries: 20
     restart: unless-stopped
-
-  # Service admin (Portainer)
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: boxer-portainer
-    command: -H unix:///var/run/docker.sock
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
     networks:
-      - web
-    restart: unless-stopped
+      - internal
 
-volumes:
-  db_data:
-  portainer_data:
+  adminer:
+    image: adminer:latest
+    container_name: boxer-adminer
+    restart: unless-stopped
+    networks:
+      - internal
 
 networks:
   web:
-  db:
+  internal:
     internal: true
+
+volumes:
+  db_data:

@@ -1110,12 +1110,16 @@
     return false;
   }
 
-  window.addEventListener("keydown", (e)=>{
-    if (isTyping()) return; // ✅ plus de reset pendant que tu tapes
-    if (e.key === "Escape") closeModal();
-    if (e.key === "n" || e.key === "N") { $("mNotes").value=""; openModal(); }
-    if (e.key === "r" || e.key === "R") refresh();
-  });
+    window.addEventListener("keydown", (e)=>{
+      const t = e.target;
+      const isTyping = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+      if (isTyping) return;
+
+      if (e.key === "Escape") closeModal();
+      if (e.key === "n" || e.key === "N") openModal();
+      if (e.key === "r" || e.key === "R") refresh();
+    });
+
 
   // ----------------------------
   // Timers

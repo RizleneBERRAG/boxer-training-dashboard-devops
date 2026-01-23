@@ -1,16 +1,31 @@
 @startuml
-node "User Browser" {
-  component "Frontend\n(Nginx)"
+!theme sunlust
+title Boxer Training Dashboard - Infra
+
+node "Docker Host" {
+  component "Cloudflared (tunnel)" as Tunnel #Orange
+  component "Caddy (reverse proxy)" as Proxy #Yellow
+
+  package "web network" {
+    component "Frontend (nginx static)" as Front
+    component "Backend (Flask API)" as Back
+    component "Portainer (admin)" as Admin
+  }
+
+  package "db network (internal)" {
+    database "MySQL" as DB
+  }
 }
 
-node "Docker Network" {
-  component "Reverse Proxy\n(Nginx)"
-  component "Backend API\n(Flask)"
-  database "MySQL"
+cloud "Internet" {
+  actor User
 }
 
-"User Browser" --> "Frontend\n(Nginx)"
-"Frontend\n(Nginx)" --> "Reverse Proxy\n(Nginx)" : /api
-"Reverse Proxy\n(Nginx)" --> "Backend API\n(Flask)"
-"Backend API\n(Flask)" --> "MySQL"
+User --> Tunnel : HTTPS
+Tunnel --> Proxy : HTTP :80
+Proxy --> Front : /
+Proxy --> Back : /api
+Proxy --> Admin : /admin
+Back --> DB : SQL
+
 @enduml
